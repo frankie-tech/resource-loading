@@ -6,6 +6,17 @@
 		<title>Document</title>
 	</head>
 	<body>
-		<script src="dist/simple.umd.js" async defer></script>
+		<script src="dist/loader.umd.js"></script>
+		<script>
+			const resources = [
+				[
+					'js:jquery',
+					{
+						url: 'https://code.jquery.com/jquery-3.5.1.js',
+					},
+				],
+			];
+			const n = new resourceLoader(resources, {});
+		</script>
 	</body>
 </html>
