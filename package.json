@@ -1,9 +1,9 @@
 {
-	"name": "simple-package",
+	"name": "resource-loader",
 	"version": "1.0.0",
 	"description": "Template repo for building simple packages",
-	"main": "dist/simple.js",
-	"module": "dist/simple.modern.js",
+	"main": "dist/loader.js",
+	"module": "dist/loader.modern.js",
 	"source": "src/index.ts",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
@@ -11,7 +11,7 @@
 		"dev": "microbundle watch --compress=false -f modern,umd --raw=true --no-sourcemap",
 		"clean:dist": "rm -rf dist",
 		"start": "npm-run-all clean:dist dev",
-		"pack": "npm-run-all clean:dist build"
+		"bundle": "npm-run-all clean:dist build"
 	},
 	"keywords": [
 		"template",
