@@ -5,6 +5,8 @@ type ResourceOptions = {
 	callback?: Function;
 	skipCondition?: () => boolean;
 	skipCallback?: Function;
+	async?: boolean;
+	defer?: boolean;
 };
 
 interface ResourceDefaults {}
