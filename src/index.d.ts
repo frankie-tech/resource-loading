@@ -1,6 +1,5 @@
 type ResourceOptions = {
 	url: string;
-	key: string;
 	id?: string;
 	callback?: Function;
 	skipCondition?: () => boolean;
