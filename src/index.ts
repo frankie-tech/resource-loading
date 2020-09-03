@@ -58,6 +58,7 @@ const configs = {
 export default class ResourceLoader {
 	resources: Map<string, ResourceOptions>;
 	configs: ResourceConfigs;
+	static template: any;
 	constructor(
 		defaults: [string, ResourceOptions][],
 		configs: ResourceConfigs
@@ -65,6 +66,18 @@ export default class ResourceLoader {
 		this.resources = new Map(defaults) as any;
 		this.configs = configs;
 		// console.log(this);
+	}
+
+	static set __template(options: {
+		key: string | string[];
+		url: any;
+		id: any;
+	}) {
+		this.template = options.key.includes('js')
+			? /* prettier-ignore */
+			  `<script src="${options.url}" id="${options.id || ''}" defer></script>`
+			: /* prettier-ignore */
+			  `<link href="${options.url}" rel="stylesheet" id="${options.id || ''}" />`;
 	}
 
 	renderResource(value: ResourceOptions, key: string) {}
