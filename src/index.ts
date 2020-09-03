@@ -56,23 +56,20 @@ const configs = {
 */
 
 export default class ResourceLoader {
-	resources: ResourceConfigs<
-		{ [key: string]: string },
-		{ [key: string]: ResourceOptions }
-	>;
-	configs: { [index: string]: ResourceOptions };
+	resources: Map<string, ResourceOptions>;
+	configs: ResourceConfigs;
 	constructor(
 		defaults: [string, ResourceOptions][],
-		configs: { [index: string]: ResourceOptions }
+		configs: ResourceConfigs
 	) {
-		this.resources = new Map(defaults as any) as any;
+		this.resources = new Map(defaults) as any;
 		this.configs = configs;
-		console.log(this);
+		// console.log(this);
 	}
 
 	renderResource(value: ResourceOptions, key: string) {}
 
-	static get documentResources() {
+	get documentResources() {
 		const bodyDataset =
 			document.body.hasAttribute('data-resources') &&
 			document.body.dataset.resources;
@@ -84,7 +81,6 @@ export default class ResourceLoader {
 
 		attrResources.forEach(resource => {
 			const config = this.configs[resource];
-
 			this.resources.set(resource, config);
 		});
 	}
