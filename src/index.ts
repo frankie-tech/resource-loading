@@ -1,5 +1,6 @@
 import render from './modules/render';
 import { ResourceOptions, ResourceConfigs } from './index.d';
+
 /*
 const resources = [
 	[
@@ -65,13 +66,12 @@ export default class ResourceLoader {
 	) {
 		this.resources = new Map(defaults) as any;
 		this.configs = configs;
-		// console.log(this);
 	}
 
 	template(
-		key,
+		key: string,
 		options: { url: string; id?: string; async?: boolean; defer?: boolean }
-	) {
+	): Element {
 		const [type, name] = key.split(':');
 		const id = options.id || name;
 
@@ -93,27 +93,33 @@ export default class ResourceLoader {
 				  `<link href="${options.url}" rel="stylesheet" id="${id}" ${media} />`;
 		var tpl = document.createElement('template');
 		tpl.insertAdjacentHTML('afterbegin', templateHTML);
-		return tpl.content.firstElementChild;
+		return tpl.content.firstElementChild as Element;
 	}
 
-	renderResource(options: ResourceOptions, key: string) {
-		if ('skipCondition' in options && options.skipCondition()) {
-			var skip =
-				'skipCallback' in options ? options.skipCallback : () => {};
-			return skip();
+	renderResource(key: string, options: ResourceOptions) {
+		const {
+			skipCondition = () => false,
+			skipCallback = () => {},
+		} = options;
+		if (skipCondition()) {
+			return skipCallback();
 		}
 
 		const resource = this.template(key, options);
 
-		var callback = 'callback' in options ? options.callback : () => {};
+		const { callback = null } = options;
 
-		resource.addEventListener('load', () => callback(), {
-			once: true,
-			capture: false,
-		});
+		if (callback !== null) {
+			resource.addEventListener('load', event => callback(event), {
+				once: true,
+				capture: false,
+			});
+		}
 	}
 
-	get documentResources() {
+	getDocumentResources() {
+		if (typeof window === undefined || typeof document === undefined)
+			return;
 		const bodyDataset =
 			document.body.hasAttribute('data-resources') &&
 			document.body.dataset.resources;
@@ -127,6 +133,19 @@ export default class ResourceLoader {
 			const config = this.configs[resource];
 			this.resources.set(resource, config);
 		});
+	}
+
+	init() {
+		// gets document resources
+		this.getDocumentResources();
+
+		try {
+			// prettier-ignore
+			this.resources.forEach((options, key) => this.renderResource(key, options));
+			return true;
+		} catch (err) {
+			throw new Error(err);
+		}
 	}
 }
 
