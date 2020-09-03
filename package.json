@@ -6,7 +6,7 @@
 	"module": "dist/loader.modern.js",
 	"source": "src/index.ts",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "uvu -r esm tests",
 		"build": "microbundle -f modern,umd",
 		"dev": "microbundle watch --compress=false -f modern,umd --raw=true --no-sourcemap",
 		"clean:dist": "rm -rf dist",
