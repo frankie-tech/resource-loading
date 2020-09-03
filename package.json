@@ -1,7 +1,7 @@
 {
 	"name": "resource-loader",
-	"version": "1.0.0",
-	"description": "Template repo for building simple packages",
+	"version": "0.0.8",
+	"description": "You feed it configs, it build resources, bada bing bada boom!",
 	"main": "dist/loader.js",
 	"module": "dist/loader.modern.js",
 	"source": "src/index.ts",
