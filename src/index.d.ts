@@ -3,7 +3,7 @@ type ResourceOptions = {
 	key: string;
 	id?: string;
 	callback?: Function;
-	skipCondition?: Function;
+	skipCondition?: () => boolean;
 	skipCallback?: Function;
 };
 
