@@ -58,7 +58,7 @@ const configs = {
 export default class ResourceLoader {
 	resources: Map<string, ResourceOptions>;
 	configs: ResourceConfigs;
-	static template: any;
+	static template: string;
 	constructor(
 		defaults: [string, ResourceOptions][],
 		configs: ResourceConfigs
@@ -68,19 +68,20 @@ export default class ResourceLoader {
 		// console.log(this);
 	}
 
-	static set __template(options: {
-		key: string | string[];
-		url: any;
-		id: any;
-	}) {
-		this.template = options.key.includes('js')
+	template(options: { key: string; url: string; id?: string }) {
+		var templateHTML = options.key.includes('js')
 			? /* prettier-ignore */
 			  `<script src="${options.url}" id="${options.id || ''}" defer></script>`
 			: /* prettier-ignore */
 			  `<link href="${options.url}" rel="stylesheet" id="${options.id || ''}" />`;
+		var tpl = document.createElement('template');
+		tpl.insertAdjacentHTML('afterbegin', templateHTML);
+		return tpl.content.firstElementChild;
 	}
 
-	renderResource(value: ResourceOptions, key: string) {}
+	renderResource(value: ResourceOptions, key: string) {
+		const resource = this.template(value);
+	}
 
 	get documentResources() {
 		const bodyDataset =
