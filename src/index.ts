@@ -68,19 +68,49 @@ export default class ResourceLoader {
 		// console.log(this);
 	}
 
-	template(options: { key: string; url: string; id?: string }) {
-		var templateHTML = options.key.includes('js')
-			? /* prettier-ignore */
-			  `<script src="${options.url}" id="${options.id || ''}" defer></script>`
-			: /* prettier-ignore */
-			  `<link href="${options.url}" rel="stylesheet" id="${options.id || ''}" />`;
+	template(
+		key,
+		options: { url: string; id?: string; async?: boolean; defer?: boolean }
+	) {
+		const [type, name] = key.split(':');
+		const id = options.id || name;
+
+		// if either the defer or async options are false
+		// don't add that attribute
+		var defer = !options.defer ? '' : 'defer';
+		var async = !options.async ? '' : 'async';
+
+		var media =
+			!options.defer || !options.async
+				? ''
+				: `media="print" onload="this.onload=null;this.media='all';"`;
+
+		var templateHTML =
+			type === 'js'
+				? /* prettier-ignore */
+				  `<script src="${options.url}" id="${id}" ${defer} ${async}></script>`
+				: /* prettier-ignore */
+				  `<link href="${options.url}" rel="stylesheet" id="${id}" ${media} />`;
 		var tpl = document.createElement('template');
 		tpl.insertAdjacentHTML('afterbegin', templateHTML);
 		return tpl.content.firstElementChild;
 	}
 
-	renderResource(value: ResourceOptions, key: string) {
-		const resource = this.template(value);
+	renderResource(options: ResourceOptions, key: string) {
+		if ('skipCondition' in options && options.skipCondition()) {
+			var skip =
+				'skipCallback' in options ? options.skipCallback : () => {};
+			return skip();
+		}
+
+		const resource = this.template(key, options);
+
+		var callback = 'callback' in options ? options.callback : () => {};
+
+		resource.addEventListener('load', () => callback(), {
+			once: true,
+			capture: false,
+		});
 	}
 
 	get documentResources() {
@@ -97,10 +127,6 @@ export default class ResourceLoader {
 			const config = this.configs[resource];
 			this.resources.set(resource, config);
 		});
-	}
-
-	static get __noop() {
-		return;
 	}
 }
 
