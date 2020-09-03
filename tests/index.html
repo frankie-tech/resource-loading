@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+		<style>
+			body {
+				background-color: #eee;
+				padding: 0;
+				margin: 0;
+			}
+			main {
+				max-width: 75vw;
+				background-color: #fff;
+				margin: 2rem auto;
+				padding: 3rem;
+			}
+			#errors {
+				margin: 0;
+				padding: 0;
+				color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h3>
+				Run
+				<pre>$python -m SimpleHTTPServer &lt;port_number></pre>
+				in your terminal, choosing your port number or leaving it blank
+				for 8000
+			</h3>
+			<ul id="errors"></ul>
+		</main>
+		<script src="../dist/loader.modern.js" type="module"></script>
+		<script type="module">
+			import * as assert from '../node_modules/uvu/dist/index.js';
+
+			console.log(window);
+		</script>
+	</body>
+</html>
