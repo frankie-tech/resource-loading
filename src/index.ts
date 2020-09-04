@@ -59,19 +59,30 @@ const configs = {
 export default class ResourceLoader {
 	resources: Map<string, ResourceOptions>;
 	configs: ResourceConfigs;
+	elements: Element[];
 	static template: string;
+	loadCount: number;
+	callbacks: Function[];
 	constructor(
 		defaults: [string, ResourceOptions][],
 		configs: ResourceConfigs
 	) {
 		this.resources = new Map(defaults) as any;
 		this.configs = configs;
+		this.elements = [];
+		this.callbacks = [];
+		this.loadCount = 0;
 	}
 
 	template(
 		key: string,
-		options: { url: string; id?: string; async?: boolean; defer?: boolean }
-	): Element {
+		options: {
+			id?: string;
+			async?: boolean;
+			defer?: boolean;
+			callback?: Function;
+		}
+	): string {
 		const [type, name] = key.split(':');
 		const id = options.id || name;
 
@@ -85,36 +96,54 @@ export default class ResourceLoader {
 				? ''
 				: `media="print" onload="this.onload=null;this.media='all';"`;
 
-		var templateHTML =
-			type === 'js'
-				? /* prettier-ignore */
-				  `<script src="${options.url}" id="${id}" ${defer} ${async}></script>`
-				: /* prettier-ignore */
-				  `<link href="${options.url}" rel="stylesheet" id="${id}" ${media} />`;
-		var tpl = document.createElement('template');
-		tpl.insertAdjacentHTML('afterbegin', templateHTML);
-		return tpl.content.firstElementChild as Element;
+		return type === 'js'
+			? /* prettier-ignore */
+			  `<script id="${id}" ${defer} ${async} onload="${options.callback}"></script>`
+			: /* prettier-ignore */
+			  `<link rel="stylesheet" id="${id}" ${media} />`;
+	}
+
+	loaded() {
+		this.loadCount += 1;
+		this.loadCount === this.resources.size
+			? this.callbacks.forEach(cb => cb !== null && cb())
+			: new Error('Issue with loaded callbacks');
 	}
 
 	renderResource(key: string, options: ResourceOptions) {
-		const {
-			skipCondition = () => false,
-			skipCallback = () => {},
-		} = options;
-		if (skipCondition()) {
+		const { skipCondition = null, skipCallback = () => {} } = options;
+		if (skipCondition !== null && skipCondition()) {
 			return skipCallback();
 		}
 
-		const resource = this.template(key, options);
+		const resourceHTML = this.template(key, options);
 
-		const { callback = null } = options;
+		const tplEl = document.createElement('template');
+		tplEl.innerHTML = resourceHTML;
+		const resource = tplEl.content.firstChild as HTMLElement;
 
-		if (callback !== null) {
-			resource.addEventListener('load', event => callback(event), {
-				once: true,
-				capture: false,
-			});
-		}
+		resource.addEventListener('load', () => this.loaded(), {
+			once: true,
+			capture: false,
+		});
+
+		resource.setAttribute(
+			key.split(':')[0] === 'js' ? 'src' : 'href',
+			options.url
+		);
+
+		this.elements.push(resource);
+	}
+
+	appendResource(element: Element) {
+		const insertedElement = document.head.insertAdjacentElement(
+			'beforeend',
+			element
+		);
+
+		return (
+			insertedElement !== null || new Error('Element insertion failed')
+		);
 	}
 
 	getDocumentResources() {
@@ -139,13 +168,28 @@ export default class ResourceLoader {
 		// gets document resources
 		this.getDocumentResources();
 
-		try {
-			// prettier-ignore
-			this.resources.forEach((options, key) => this.renderResource(key, options));
-			return true;
-		} catch (err) {
-			throw new Error(err);
-		}
+		// prettier-ignore
+		document.addEventListener('readystatechange',
+			() => {
+				if (document.readyState !== 'complete') return;
+				// console.log(this);
+				try {
+					// prettier-ignore
+					this.resources.forEach((options, key) => {
+						var cb = 'callback' in options ? options.callback : () => {};
+						if (cb !== undefined) {
+							this.callbacks.push(cb)
+						}
+						this.renderResource(key, options)
+					});
+					
+					this.elements.forEach(el => this.appendResource(el));
+					return true;
+				} catch (err) {
+					console.error(err);
+				}
+		// prettier-ignore
+		}, false);
 	}
 }
 

@@ -6,6 +6,7 @@ type ResourceOptions = {
 	skipCallback?: Function;
 	async?: boolean;
 	defer?: boolean;
+	loaded?: boolean;
 };
 
 interface ResourceDefaults {}
