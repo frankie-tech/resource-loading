@@ -4,19 +4,54 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Document</title>
+		<script>
+			document.addEventListener('readystatechange', () =>
+				console.log(document.readyState)
+			);
+		</script>
 	</head>
-	<body>
+	<body data-resources="css:bootstrap,js:bootstrap">
+		<main>
+			<ul id="resources"></ul>
+		</main>
 		<script src="dist/loader.umd.js"></script>
 		<script>
+			function appendResource(name) {
+				return document
+					.getElementById('resources')
+					.insertAdjacentHTML(
+						'beforeend',
+						`<li>${name} was loaded</li>`
+					);
+			}
+
+			const documentConfigs = {
+				'css:bootstrap': {
+					url:
+						'https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css',
+					callback: () => appendResource('Bootstrap CSS'),
+				},
+				'js:bootstrap': {
+					url:
+						'https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js',
+					callback: () => appendResource('Bootstrap JS'),
+				},
+			};
+
 			const resources = [
 				[
 					'js:jquery',
 					{
 						url: 'https://code.jquery.com/jquery-3.5.1.js',
+						callback: () => {
+							const l = window.$('ul').children('li').length;
+							console.log(l);
+						},
 					},
 				],
 			];
-			const n = new resourceLoader(resources, {});
+			const n = new resourceLoader(resources, documentConfigs);
+			n.init();
 		</script>
 	</body>
 </html>
