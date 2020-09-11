@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Document</title>
+		<title>Test resource-loader</title>
 		<style>
 			body {
 				background-color: #eee;
@@ -22,8 +22,17 @@
 				color: red;
 			}
 		</style>
+		<script>
+			window.LoaderConfigs = {
+				'js:bootstrap': {
+					url:
+						'https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js',
+					callback: () => console.log('bootstrap is loaded'),
+				},
+			};
+		</script>
 	</head>
-	<body>
+	<body data-resources="js:bootstrap">
 		<main>
 			<h3>
 				Run
@@ -33,11 +42,21 @@
 			</h3>
 			<ul id="errors"></ul>
 		</main>
-		<script src="../dist/loader.modern.js" type="module"></script>
-		<script type="module">
-			import * as assert from '../node_modules/uvu/dist/index.js';
-
-			console.log(window);
+		<script src="../dist/loader.umd.js"></script>
+		<script>
+			var loader = new resourceLoader(
+				[
+					[
+						'js:jquery',
+						{
+							url:
+								'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js',
+						},
+					],
+				],
+				{}
+			);
+			loader.init();
 		</script>
 	</body>
 </html>
