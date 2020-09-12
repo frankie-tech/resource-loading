@@ -22,7 +22,7 @@ export default class Controller {
 				dependencyObject[key].fulfilled = true;
 			});
 			const resolvedKey = this.resolve(resourceKey, dependencies);
-			if (resolvedKey !== undefined) toResolve.push(resolvedKey);
+			if (resolvedKey !== undefined) toResolve.push({ resolvedKey });
 		});
 
 		return toResolve;
