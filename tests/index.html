@@ -5,16 +5,27 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Test resource-loader</title>
 		<style>
+			html,
 			body {
 				background-color: #eee;
 				padding: 0;
 				margin: 0;
+				height: 100%;
+			}
+			body {
+				display: flex;
+				flex-direction: column;
+				padding-top: 1.5rem;
+				padding-bottom: 1.5rem;
+				height: calc(100% - 3rem);
 			}
 			main {
 				max-width: 75vw;
 				background-color: #fff;
-				margin: 2rem auto;
+				border-radius: 1.5em;
+				margin: 0 auto;
 				padding: 3rem;
+				flex: 1 1 auto;
 			}
 			#errors {
 				margin: 0;
@@ -27,12 +38,15 @@
 				'js:bootstrap': {
 					url:
 						'https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js',
-					callback: () => console.log('bootstrap is loaded'),
+					callback: () => {
+						document.body.style.background = '#0a0';
+					},
+					deps: 'js:jquery',
 				},
 			};
 		</script>
 	</head>
-	<body data-resources="js:bootstrap">
+	<body data-rl-dependencies="js:bootstrap">
 		<main>
 			<h3>
 				Run
@@ -43,20 +57,19 @@
 			<ul id="errors"></ul>
 		</main>
 		<script src="../dist/loader.umd.js"></script>
+		<script src="./configs.js"></script>
 		<script>
-			var loader = new resourceLoader(
-				[
-					[
-						'js:jquery',
-						{
-							url:
-								'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js',
-						},
-					],
-				],
-				{}
-			);
-			loader.init();
+			// import ResourceOptionsArray from './configs.js';
+			var loader = new resourceLoader(ResourceOptionsArray, {});
+			const loaderInit = () =>
+				document.readyState === 'complete' && loader.init();
+			(() => {
+				// prettier-ignore
+				if (document.readyState !== "complete") {
+					return document.addEventListener('readystatechange', loaderInit);
+				}
+				loaderInit();
+			})();
 		</script>
 	</body>
 </html>
