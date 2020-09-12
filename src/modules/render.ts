@@ -1,33 +1,43 @@
-import { ResourceOptions } from '../index.d';
+import { ResourceOptions } from '../types';
 
-export default function (type: string, options: ResourceOptions) {
-	options = options || {};
-	const tag =
-		type === 'js'
-			? document.createElement('script')
-			: document.createElement('link');
-	if (type === 'js')
-		options = Object.assign(tag, { async: false, defer: true }, options);
-	else if (type === 'css') {
-		options = Object.assign(
-			tag,
-			{ rel: 'stylesheet', media: 'print' },
-			options
+export default function (type: string, resourceOptions: ResourceOptions) {
+	const options = resourceOptions || {};
+
+	return type === 'js'
+		? script(options as ResourceOptions)
+		: link(options as ResourceOptions);
+
+	function script(options: ResourceOptions) {
+		const { url, async = false, id = '' } = options;
+
+		return Object.assign(
+			document.createElement('script'),
+			{ async: false, defer: false },
+			{ src: url, async, id }
 		);
-		tag.addEventListener(
+	}
+
+	function link(options: ResourceOptions) {
+		const { url, async = false, id = '' } = options;
+
+		var assignObject = {
+			href: url,
+			media: 'all',
+			id,
+		};
+
+		if (async) assignObject.media = 'print';
+
+		const el = Object.assign(
+			document.createElement('link'),
+			{ rel: 'stylesheet' },
+			assignObject
+		);
+		el.addEventListener(
 			'load',
-			() => {
-				this.onload = null;
-				this.media = 'all';
-			},
-			{ once: true, capture: true }
+			() => ((this.onload = null), (this.media = 'all')),
+			{ once: true, capture: false }
 		);
+		return el;
 	}
-	if (options.callback !== undefined) {
-		tag.addEventListener('load', event => options.callback(event), {
-			once: true,
-			capture: true,
-		});
-	}
-	return tag;
 }
