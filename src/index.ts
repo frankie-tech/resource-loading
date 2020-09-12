@@ -1,6 +1,13 @@
-import render from './modules/render';
-import { ResourceOptions, ResourceConfigs } from './index.d';
-
+import { ResourceOptions, ResourceConfigs, Selector } from './types';
+import { extendEvent, trueType } from './modules/utils';
+import Controller from './modules/controller';
+import Renderer from './modules/renderer';
+// Globals
+declare global {
+	interface Window {
+		LoaderConfigs: ResourceConfigs;
+	}
+}
 /*
 const resources = [
 	[
@@ -57,183 +64,114 @@ const configs = {
 */
 
 export default class ResourceLoader {
-	resources: Map<string, ResourceOptions>;
-	configs: ResourceConfigs;
-	elements: Element[];
-	static template: string;
-	loadCount: number;
-	callbacks: Function[];
-	constructor(
-		defaults: [string, ResourceOptions][],
-		configs: ResourceConfigs
-	) {
-		this.resources = new Map(defaults) as any;
-		this.configs = configs;
-		this.elements = [];
-		this.callbacks = [];
-		this.loadCount = 0;
+	_configs: ResourceConfigs;
+	controller: Controller;
+	elements: Renderer;
+	// prettier-ignore
+	constructor(defaults: [string, ResourceOptions][], configs: ResourceConfigs) {
+		this._configs = Object.assign(window.LoaderConfigs || {}, configs);
+		this.controller = new Controller(defaults);
+		this.elements = new Renderer(document.head);
+		Renderer.update(document.body, 'rlComplete', false);
 	}
 
-	template(
-		key: string,
-		options: {
-			id?: string;
-			async?: boolean;
-			defer?: boolean;
-			callback?: Function;
+	handleLoad(event: Event) {
+		const target = event.target as HTMLElement;
+
+		if (Renderer.has(target, 'data-rl-resource') !== true) return;
+		var resolved;
+		try {
+			var key = target.dataset.rlResource;
+			const options = this.controller.find(key);
+
+			if (trueType(options) === 'Object' && 'callback' in options) {
+				options.callback();
+				Renderer.update(target, 'rlCallback', 'success');
+			}
+			resolved = this.controller.fulfill(key);
+			Renderer.update(target, 'rlState', 'loading');
+		} catch (err) {
+			console.warn(
+				'There was an error with loading resource named: ' + key
+			);
+			console.error(err);
+		} finally {
+			Renderer.update(target, 'rlState', 'complete');
+			if (resolved.length !== 0)
+				resolved.forEach(key => {
+					this.elements.render(this._configs[key], key, true);
+				});
 		}
-	): string {
-		const [type, name] = key.split(':');
-		const id = options.id || name;
-
-		// if either the defer or async options are false
-		// don't add that attribute
-		var defer = !options.defer ? '' : 'defer';
-		var async = !options.async ? '' : 'async';
-
-		var media =
-			!options.defer || !options.async
-				? ''
-				: `media="print" onload="this.onload=null;this.media='all';"`;
-
-		return type === 'js'
-			? /* prettier-ignore */
-			  `<script id="${id}" ${defer} ${async} onload="${options.callback}"></script>`
-			: /* prettier-ignore */
-			  `<link rel="stylesheet" id="${id}" ${media} />`;
-	}
-
-	loaded() {
-		this.loadCount += 1;
-		this.loadCount === this.resources.size
-			? this.callbacks.forEach(cb => cb !== null && cb())
-			: new Error('Issue with loaded callbacks');
-	}
-
-	renderResource(key: string, options: ResourceOptions) {
-		const { skipCondition = null, skipCallback = () => {} } = options;
-		if (skipCondition !== null && skipCondition()) {
-			return skipCallback();
-		}
-
-		const resourceHTML = this.template(key, options);
-
-		const tplEl = document.createElement('template');
-		tplEl.innerHTML = resourceHTML;
-		const resource = tplEl.content.firstChild as HTMLElement;
-
-		resource.addEventListener('load', () => this.loaded(), {
-			once: true,
-			capture: false,
-		});
-
-		resource.setAttribute(
-			key.split(':')[0] === 'js' ? 'src' : 'href',
-			options.url
-		);
-
-		this.elements.push(resource);
-	}
-
-	appendResource(element: Element) {
-		const insertedElement = document.head.insertAdjacentElement(
-			'beforeend',
-			element
-		);
-
-		return (
-			insertedElement !== null || new Error('Element insertion failed')
-		);
-	}
-
-	getDocumentResources() {
-		if (typeof window === undefined || typeof document === undefined)
-			return;
-		const bodyDataset =
-			document.body.hasAttribute('data-resources') &&
-			document.body.dataset.resources;
-		if (!bodyDataset) return;
-		const attrResources =
-			bodyDataset.indexOf(',') > 0
-				? bodyDataset.split(',')
-				: [bodyDataset];
-
-		attrResources.forEach(resource => {
-			const config = this.configs[resource];
-			this.resources.set(resource, config);
-		});
 	}
 
 	init() {
-		// gets document resources
-		this.getDocumentResources();
+		// this.dependencies = dependencyList || document.body;
 
-		// prettier-ignore
-		document.addEventListener('readystatechange',
-			() => {
-				if (document.readyState !== 'complete') return;
-				// console.log(this);
-				try {
-					// prettier-ignore
-					this.resources.forEach((options, key) => {
-						var cb = 'callback' in options ? options.callback : () => {};
-						if (cb !== undefined) {
-							this.callbacks.push(cb)
-						}
-						this.renderResource(key, options)
-					});
-					
-					this.elements.forEach(el => this.appendResource(el));
-					return true;
-				} catch (err) {
-					console.error(err);
-				}
-		// prettier-ignore
-		}, false);
+		try {
+			this.resources.forEach((options: ResourceOptions, key: string) =>
+				this.elements.render(options, key)
+			);
+			document.head.addEventListener(
+				'load',
+				event => this.handleLoad(event),
+				true
+			);
+			this.elements.append();
+		} catch (err) {
+			console.error(err);
+		} finally {
+			Renderer.update(document.body, 'rlComplete', true);
+		}
 	}
+
+	get resources() {
+		const resourceDeps =
+			Renderer.has(document.body, 'data-rl-dependencies') &&
+			document.body.dataset.rlDependencies;
+		const resourceDepArr =
+			resourceDeps.indexOf(',') > 0
+				? resourceDeps.split(',')
+				: [resourceDeps];
+		resourceDepArr.forEach(key => {
+			const resourceConfig = this._configs[key];
+			if ('deps' in resourceConfig) {
+				const deps =
+					resourceConfig.deps.indexOf(',') > 0
+						? resourceConfig.deps.split(',')
+						: [resourceConfig.deps];
+
+				return this.controller.define(key, deps);
+			}
+			this.controller.add(key, resourceConfig);
+		});
+
+		return this.controller.resources();
+	}
+
+	/*
+	set dependencies(el: HTMLElement) {
+		const resources = el.hasAttribute('data-rl-dependencies') && el.dataset.rlDependencies;
+		if (!resources) {
+			this._dependencies = []
+			return;
+		}
+
+		if (resources.indexOf(',') > 0) {
+			this._dependencies = resources.split(',');
+			return;
+		}
+
+		this._dependencies = [resources];
+	}
+
+	// adds resources from an elements 'data-resources' to the configs attribute
+	get resources() {
+		this._dependencies.forEach(resource => {
+			const config = this._configs[resource];
+			this.controller.add(resource, config);
+		});
+
+		return this.controller.resources();
+	}
+	*/
 }
-
-// const resources: Map<string, ResourceOptions> = new Map();
-/*
-const documentResources = (function () {
-	const bodyDataset =
-		document.body.hasAttribute('data-resources') &&
-		document.body.dataset.resources;
-	if (!bodyDataset) return;
-	const attrResources =
-		bodyDataset.indexOf(',') > 0 ? bodyDataset.split(',') : [bodyDataset];
-	// console.log(attrResources);
-
-	attrResources.forEach(resource => {
-		const config = configs[resource];
-
-		_.resources.set(resource, config);
-	});
-})();
-
-resources.forEach((value, key) => {
-	if (value === undefined || key === 'false') return;
-
-	const noop = () => {}; // a do nothing function, defined as a default for callbacks that are undefined
-	const [type, name] = key.split(':');
-	const {
-		url,
-		callback = noop,
-		skipCondition = () => false, // if the skip condition is undefined, always go through
-		skipCallback = noop,
-		id = name,
-	} = value;
-
-	if (skipCondition()) return skipCallback();
-
-	const options = Object.assign(value, {
-		[type === 'js' ? 'src' : 'href']: url,
-		id,
-		callback,
-	});
-
-	var el = _.render(type, options);
-
-	document.head.appendChild(el);
-});
-*/
